@@ -5,10 +5,18 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/albertapi/AlbertApiCLI/sets"
 	"github.com/albertapi/AlbertApiCLI/requests"
 )
+
+var Method string
+var Url string
+var Body string
+var ExpectedStatus int
+var ExpectedTiming int
 
 // addRequestCmd represents the addRequest command
 var addRequestCmd = &cobra.Command{
@@ -21,6 +29,21 @@ var addRequestCmd = &cobra.Command{
 		request := requests.Request{
 			FileName: fileName,
 			Name: Name,
+			Method: Method,
+			Url: Url,
+			Headers: make(map[string]string),
+			Body: Body,
+			ExpectedStatus: ExpectedStatus,
+			ExpectedTiming: ExpectedTiming,
+		}
+
+		if requests.RequestExists(Path, fileName) {
+			fmt.Println("Request exists. Overwrite (y/n)?")
+			var overwriteString string
+			fmt.Scanln(&overwriteString)
+			if overwriteString != "y"{
+				return
+			}
 		}
 
 		requests.SaveRequest(Path, fileName, request)
@@ -56,4 +79,10 @@ func init() {
 
 	addRequestCmd.Flags().StringVarP(&Name, "Name", "N", "", "The name of the request")
 	addRequestCmd.MarkFlagRequired("Name")
+
+	addRequestCmd.Flags().StringVar(&Method, "request.method", "", "Provide the method for the request")
+	addRequestCmd.Flags().StringVar(&Url, "request.url", "", "Provide the url for the request")
+	addRequestCmd.Flags().StringVar(&Body, "request.body", "", "Provide the json body for the request")
+	addRequestCmd.Flags().IntVar(&ExpectedStatus, "request.expectedStatus", 0, "Provide the expected status code")
+	addRequestCmd.Flags().IntVar(&ExpectedTiming, "request.expectedTiming", 0, "Provide the expected timing for the request")
 }

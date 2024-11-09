@@ -8,12 +8,11 @@ import (
 )
 
 type Set struct {
-	Name      	string 		`json:"name"`
-	Config    	string 		`json:"config"`
-	Data      	string 		`json:"data"`
-	DataLabel 	string 		`json:"dataLabel"`
-	Requests	[]string	`json:Requests`
-	FindReplaces	[]string	`json:FindReplaces`
+	Name      	string 				`json:"name"`
+	Config    	map[string]string		`json:"config"`
+	Data      	map[string]map[string]string 	`json:"data"`
+	Requests	[]string			`json:Requests`
+	FindReplaces	[]string			`json:FindReplaces`
 }
 
 func LoadSet(path string) Set{

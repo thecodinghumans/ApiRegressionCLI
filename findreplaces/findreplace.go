@@ -19,6 +19,10 @@ type FindReplace struct {
 func LoadFindReplace(path string, fileName string) FindReplace{
 	var findReplace FindReplace
 
+	if !FindReplaceExists(path, fileName) {
+		return findReplace
+	}
+
 	file, err := os.OpenFile(path + "/FindReplaces/" + fileName, os.O_RDONLY, os.ModePerm)
         if err != nil {
                 fmt.Println("Error opening file", err)
@@ -40,6 +44,14 @@ func LoadFindReplace(path string, fileName string) FindReplace{
         }
 
         return findReplace
+}
+
+func FindReplaceExists(path string, fileName string) bool {
+	_, err := os.Stat(path + "/FindReplaces/" + fileName)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 func SaveFindReplace(path string, fileName string, findReplace FindReplace){

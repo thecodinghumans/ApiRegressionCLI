@@ -8,24 +8,23 @@ import (
 )
 
 type Request struct{
-	FileName		string		`json:FileName`
-	Name			string 		`json:Name`
-	Method			string		`json:Method`
-	Url			string		`json:Url`
-	Headers			[]Header	`json:Headers`
-	Body			string		`json:Body`
-	ExpectedStatus		int		`json:ExpectedStatus`
-	ExpectedTiming		int		`json:ExpectedTiming`
-	ExpectedBodyFormat	string		`json:ExpectedBodyFormat`
-}
-
-type Header struct{
-	Key	string 	`json:Key`
-	Value	string	`json:Value`
+	FileName		string			`json:FileName`
+	Name			string 			`json:Name`
+	Method			string			`json:Method`
+	Url			string			`json:Url`
+	Headers			map[string]string	`json:Headers`
+	Body			string			`json:Body`
+	ExpectedStatus		int			`json:ExpectedStatus`
+	ExpectedTiming		int			`json:ExpectedTiming`
+	ExpectedBodyFormat	string			`json:ExpectedBodyFormat`
 }
 
 func LoadRequest(path string, fileName string) Request {
 	var request Request
+
+	if RequestExists(path, fileName) {
+		return request
+	}
 
 	file, err := os.OpenFile(path + "/Requests/" + fileName, os.O_RDONLY, os.ModePerm)
         if err != nil {
@@ -48,6 +47,14 @@ func LoadRequest(path string, fileName string) Request {
         }
 
 	return request
+}
+
+func RequestExists(path string, fileName string) bool {
+	_, err := os.Stat(path + "/Requests/" + fileName)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 func SaveRequest(path string, fileName string, request Request){

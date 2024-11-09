@@ -8,6 +8,7 @@ package cmd
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/albertapi/AlbertApiCLI/requests"
@@ -35,6 +36,8 @@ var runCmd = &cobra.Command{
 		for _, findReplaceFileName := range set.FindReplaces {
 			findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
 		}
+
+		runSet(set, requestsMap, findReplaceMap)
 	},
 }
 
@@ -63,7 +66,7 @@ func makeApiCall(request requests.Request){
 	fmt.Println(request)
 }
 
-func runSetWithData(set sets.Set, requestsMap map[string]requests.Request, dataItem map[string]string, wg sync.WaitGroup){
+func runSetWithData(set sets.Set, requestsMap map[string]requests.Request, findReplaceMap map[string]findreplaces.FindReplace, dataItem map[string]string, wg *sync.WaitGroup){
 	wg.Done()
 
 	for _, item := range set.Requests {
@@ -72,22 +75,15 @@ func runSetWithData(set sets.Set, requestsMap map[string]requests.Request, dataI
 	}
 }
 
-func runSet(set sets.Set, requestsMap map[string]requests.Request, findReplacesMap map[string]findreplaces.FindReplace){
-	var data []map[string]string
-
-	err := json.Unmarshal([]byte(set.Data), &data)
-	if err != nil {
-		log.Fatalf("Error decoding JSON: %v", err)
-	}
-
+func runSet(set sets.Set, requestsMap map[string]requests.Request, findReplaceMap map[string]findreplaces.FindReplace){
 	var wg sync.WaitGroup
 
-	for _, dataItem := range data {
+	for _, dataItem := range set.Data {
 		if Parallel {
 			wg.Add(1)
 			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg)
 		}else{
-			runSetWithData(set, requestsMap, dataItem, nil)
+			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil)
 		}
 	}
 

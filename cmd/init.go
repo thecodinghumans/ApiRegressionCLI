@@ -20,10 +20,9 @@ var initCmd = &cobra.Command{
 		os.MkdirAll(Path, 0755)
 
 		set := sets.Set{
-			Name:      "",
-			Config:    "",
-			Data:      "",
-			DataLabel: "",
+			Name:      SetName,
+			Config:    make(map[string]string),
+			Data:      make(map[string]map[string]string),
 		}
 
 		sets.SaveSet(Path, set)
@@ -48,4 +47,6 @@ func init() {
 	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	initCmd.Flags().StringVarP(&Path, "Path", "P", "", "The path to create the new set (Required)")
 	initCmd.MarkFlagRequired("Path")
+
+	initCmd.Flags().StringVar(&SetName, "set.name", "", "Provide the name of the set")
 }

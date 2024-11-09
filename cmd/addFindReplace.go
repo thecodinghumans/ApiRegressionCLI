@@ -6,6 +6,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/albertapi/AlbertApiCLI/findreplaces"
 	"github.com/albertapi/AlbertApiCLI/sets"
@@ -22,6 +24,15 @@ var addFindReplaceCmd = &cobra.Command{
 		findReplace := findreplaces.FindReplace{
 			FileName: fileName,
 			Name: Name,
+		}
+
+		if findreplaces.FindReplaceExists(Path, fileName) {
+			fmt.Println("Find Replace exists. Overwrite (y/n)?")
+			var overwriteString string
+			fmt.Scanln(&overwriteString)
+			if overwriteString != "y" {
+				return
+			}
 		}
 
 		findreplaces.SaveFindReplace(Path, fileName, findReplace)
