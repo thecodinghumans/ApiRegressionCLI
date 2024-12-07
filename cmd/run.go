@@ -1,19 +1,21 @@
-
-
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"strings"
 	"sync"
+	"encoding/gob"
+	"bytes"
+	"time"
 
+	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
 	"github.com/albertapi/AlbertApiCLI/requests"
 	"github.com/albertapi/AlbertApiCLI/sets"
 	"github.com/albertapi/AlbertApiCLI/findreplaces"
+	"github.com/albertapi/AlbertApiCLI/responses"
+	"github.com/albertapi/AlbertApiCLI/runresults"
+	"github.com/albertapi/AlbertApiCLI/results"
 )
 
 var Parallel bool
@@ -37,7 +39,7 @@ var runCmd = &cobra.Command{
 			findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
 		}
 
-		runSet(set, requestsMap, findReplaceMap)
+		runSet(Name, set, requestsMap, findReplaceMap)
 	},
 }
 
@@ -60,32 +62,229 @@ func init() {
 	runCmd.MarkFlagRequired("Path")
 
 	runCmd.Flags().BoolVar(&PromptEachCall, "PromptEachCall", false, "Prompt the user whether to continue with each run")
+
+	runCmd.Flags().StringVarP(&Name, "Name", "n", "", "A name for this particular run")
 }
 
-func makeApiCall(request requests.Request){
+func makeApiCall(
+	request requests.Request,
+) responses.Response {
 	fmt.Println(request)
+
+	resp := responses.Response{}
+
+	return resp
 }
 
-func runSetWithData(set sets.Set, requestsMap map[string]requests.Request, findReplaceMap map[string]findreplaces.FindReplace, dataItem map[string]string, wg *sync.WaitGroup){
-	wg.Done()
+func runSetWithData(
+	set sets.Set, 
+	requestsMap map[string]requests.Request, 
+	findReplaceMap map[string]findreplaces.FindReplace, 
+	dataItem map[string]string, 
+	wg *sync.WaitGroup,
+	mx *sync.Mutex,
+	runResult *runresults.RunResult,
+) {
+	if wg != nil {
+		defer wg.Done()
+	}
+
+	resps := make([]responses.Response, 0)
 
 	for _, item := range set.Requests {
 		request := requestsMap[item]
-		makeApiCall(request)
+
+		requestClone, err := DeepClone(request)
+		if err != nil {
+			panic(err)
+		}
+
+		newRequest := requestClone.(requests.Request)
+		newRequest.Method = GetVal(dataItem, set.Config, request.Method, findReplaceMap, resps)
+		newRequest.Url = GetVal(dataItem, set.Config, request.Url, findReplaceMap, resps)
+		for key, val := range request.Headers {
+			newRequest.Headers[key] = GetVal(dataItem, set.Config, val, findReplaceMap, resps)
+		}
+		newRequest.Body = GetVal(dataItem, set.Config, request.Body, findReplaceMap, resps)
+
+		resp := makeApiCall(newRequest)
+
+		resp.ComputedRequest = newRequest
+
+		resps = append(resps, resp)
+	}
+
+	if mx != nil {
+		mx.Lock()
+	}
+
+	res := results.Result{
+		DataItem: dataItem,
+		Responses: resps,
+	}
+
+	runResult.Results = append(runResult.Results, res)
+
+	if mx != nil {
+		mx.Unlock()
 	}
 }
 
-func runSet(set sets.Set, requestsMap map[string]requests.Request, findReplaceMap map[string]findreplaces.FindReplace){
+func runSet(
+	Name string,
+	set sets.Set, 
+	requestsMap map[string]requests.Request, 
+	findReplaceMap map[string]findreplaces.FindReplace,
+) {
 	var wg sync.WaitGroup
+	var mx sync.Mutex
+
+	runResult := runresults.RunResult{
+		Name: Name,
+		CreateDate: time.Now().UTC(),
+	}
+
+	if !Parallel {
+		wg.Add(1)
+	}
 
 	for _, dataItem := range set.Data {
 		if Parallel {
 			wg.Add(1)
-			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg)
+			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult)
 		}else{
-			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil)
+			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil, nil, &runResult)
 		}
 	}
 
+	if !Parallel {
+		wg.Done()
+	}
+
 	wg.Wait()
+
+	runResult.EndDate = time.Now().UTC()
+
+	infos := runresults.LoadInfo(Path)
+
+	info := runresults.RunResultInfo{
+		FileName: runresults.GetFileName(runResult.CreateDate),
+		Name: Name,
+		CreateDate: runResult.CreateDate,
+	}
+
+	infos.Rows = append(infos.Rows, info)
+
+	runresults.SaveRunResult(Path, runResult)
+
+	runresults.SaveInfo(Path, infos)
+}
+
+func GetVal(
+	dataItem map[string]string,
+	config map[string]string,
+	val string,
+	findReplaceMap map[string]findreplaces.FindReplace,
+	resps []responses.Response,
+) string {
+	//Build the single  map to use
+	mergedMap := MergeMaps(config, dataItem)
+
+	//Ovewrite the map with any findreplace strings
+	for _, fr := range findReplaceMap {
+		val := fr.Replace
+
+		requestFileName := fr.ReplaceWithRequestFileName
+		replaceFrom := fr.ReplaceFrom
+
+		var response responses.Response
+
+		for _, resp := range resps {
+			if resp.OriginalRequest.FileName == requestFileName {
+				response = resp
+			}
+		}
+
+		if response.OriginalRequest.FileName != "" {
+			switch(replaceFrom) {
+				case "Response-Headers":
+					val = response.Headers[val]
+					break
+				case "Response-Body":
+					val = gjson.Get(response.Body, val).String()
+					break
+			}
+		}
+
+		mergedMap[fr.Find] = val
+	}
+
+	return ReplacePlaceholders(val, mergedMap)
+}
+
+// ReplacePlaceholders replaces all placeholders in the format {{key}} within a string
+// with corresponding values from the replacements map.
+func ReplacePlaceholders(input string, replacements map[string]string) string {
+	var result strings.Builder
+	i := 0
+
+	for i < len(input) {
+		// Look for the start of a placeholder
+		if i+1 < len(input) && input[i] == '{' && input[i+1] == '{' {
+			// Find the end of the placeholder
+			end := strings.Index(input[i+2:], "}}")
+			if end != -1 {
+				// Extract the key between {{ and }}
+				key := input[i+2 : i+2+end]
+				// Look up the replacement value in the map
+				if value, ok := replacements[key]; ok {
+					result.WriteString(value)
+				} else {
+					// If the key is not in the map, write the original placeholder
+					result.WriteString("{{" + key + "}}")
+				}
+				// Move past this placeholder
+				i += end + 4
+				continue
+			}
+		}
+		// If not a placeholder, just add the character to the result
+		result.WriteString(string(input[i]))
+		i++
+	}
+
+	return result.String()
+}
+
+// MergeMaps takes two map[string]string and returns a new merged map.
+func MergeMaps(map1, map2 map[string]string) map[string]string {
+    // Create a new map to hold the merged values
+    mergedMap := make(map[string]string)
+
+    // Copy all elements from map1 to mergedMap
+    for key, value := range map1 {
+        mergedMap[key] = value
+    }
+
+    // Copy all elements from map2 to mergedMap (overwriting any duplicate keys)
+    for key, value := range map2 {
+        mergedMap[key] = value
+    }
+
+    return mergedMap
+}
+
+func DeepClone(src any) (any, error) {
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(src)
+	if err != nil {
+		return nil, err
+	}
+
+	dst := new(any)
+	err = gob.NewDecoder(&buf).Decode(dst)
+	if err != nil {
+		return nil, err
+	}
+	return *dst, nil
 }
