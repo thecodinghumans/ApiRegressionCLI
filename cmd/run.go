@@ -136,6 +136,8 @@ func runSet(
 	requestsMap map[string]requests.Request, 
 	findReplaceMap map[string]findreplaces.FindReplace,
 ) {
+	fmt.Println("Running Set: " + set.Name)
+
 	var wg sync.WaitGroup
 	var mx sync.Mutex
 
@@ -148,7 +150,9 @@ func runSet(
 		wg.Add(1)
 	}
 
-	for _, dataItem := range set.Data {
+	for key, dataItem := range set.Data {
+		fmt.Println("Running with data item: " + key)
+
 		if Parallel {
 			wg.Add(1)
 			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult)
