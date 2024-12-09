@@ -12,7 +12,7 @@ type Request struct{
 	Headers			map[string]string	`json:Headers`
 	Body			string			`json:Body`
 	ExpectedStatus		int			`json:ExpectedStatus`
-	ExpectedTiming		int			`json:ExpectedTiming`
+	ExpectedTiming		int64			`json:ExpectedTiming`
 	ExpectedBodyFormat	string			`json:ExpectedBodyFormat`
 }
 

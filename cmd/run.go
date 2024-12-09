@@ -7,6 +7,8 @@ import (
 	"encoding/gob"
 	"bytes"
 	"time"
+	"net/http"
+	"io/ioutil"
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
@@ -69,9 +71,40 @@ func init() {
 func makeApiCall(
 	request requests.Request,
 ) responses.Response {
-	fmt.Println(request)
+	client := &http.Client{Timeout: 10 * time.Minute}
 
-	resp := responses.Response{}
+	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer([]byte(request.Body)))
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	before := time.Now()
+
+	httpResp, err := client.Do(req)
+
+	timing := time.Since(before)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer httpResp.Body.Close()
+
+	body, err := ioutil.ReadAll(httpResp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	resp := responses.Response{
+		StatusCode: httpResp.StatusCode,
+		Headers: httpResp.Header,
+		Body: string(body),
+		Timing: timing.Milliseconds(),
+		MeetsExpectedStatusCode: request.ExpectedStatus == httpResp.StatusCode,
+		MeetsExpectedTiming: request.ExpectedTiming >= timing.Milliseconds(),
+	}
 
 	return resp
 }
@@ -84,10 +117,13 @@ func runSetWithData(
 	wg *sync.WaitGroup,
 	mx *sync.Mutex,
 	runResult *runresults.RunResult,
+	dataItemKey string,
 ) {
 	if wg != nil {
 		defer wg.Done()
 	}
+
+	fmt.Println("Running with data item: " + dataItemKey)
 
 	resps := make([]responses.Response, 0)
 
@@ -109,6 +145,7 @@ func runSetWithData(
 
 		resp := makeApiCall(newRequest)
 
+		resp.OriginalRequest = request
 		resp.ComputedRequest = newRequest
 
 		resps = append(resps, resp)
@@ -128,6 +165,8 @@ func runSetWithData(
 	if mx != nil {
 		mx.Unlock()
 	}
+
+	fmt.Println("Finished with data item: " + dataItemKey)
 }
 
 func runSet(
@@ -151,13 +190,11 @@ func runSet(
 	}
 
 	for key, dataItem := range set.Data {
-		fmt.Println("Running with data item: " + key)
-
 		if Parallel {
 			wg.Add(1)
-			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult)
+			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult, key)
 		}else{
-			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil, nil, &runResult)
+			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil, nil, &runResult, key)
 		}
 	}
 
@@ -182,6 +219,8 @@ func runSet(
 	runresults.SaveRunResult(Path, runResult)
 
 	runresults.SaveInfo(Path, infos)
+
+	fmt.Println("Finished running set: " + set.Name)
 }
 
 func GetVal(
@@ -212,7 +251,7 @@ func GetVal(
 		if response.OriginalRequest.FileName != "" {
 			switch(replaceFrom) {
 				case "Response-Headers":
-					val = response.Headers[val]
+					val = response.Headers[val][0]
 					break
 				case "Response-Body":
 					val = gjson.Get(response.Body, val).String()

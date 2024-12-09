@@ -16,7 +16,7 @@ var Method string
 var Url string
 var Body string
 var ExpectedStatus int
-var ExpectedTiming int
+var ExpectedTiming int64
 
 // addRequestCmd represents the addRequest command
 var addRequestCmd = &cobra.Command{
@@ -84,5 +84,5 @@ func init() {
 	addRequestCmd.Flags().StringVar(&Url, "request.url", "", "Provide the url for the request")
 	addRequestCmd.Flags().StringVar(&Body, "request.body", "", "Provide the json body for the request")
 	addRequestCmd.Flags().IntVar(&ExpectedStatus, "request.expectedStatus", 0, "Provide the expected status code")
-	addRequestCmd.Flags().IntVar(&ExpectedTiming, "request.expectedTiming", 0, "Provide the expected timing for the request")
+	addRequestCmd.Flags().Int64Var(&ExpectedTiming, "request.expectedTiming", 0, "Provide the expected timing for the request")
 }
