@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"encoding/gob"
+//	"encoding/gob"
 	"bytes"
 	"time"
 	"net/http"
 	"io/ioutil"
+	"encoding/json"
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
@@ -70,12 +71,14 @@ func init() {
 
 func makeApiCall(
 	request requests.Request,
-) responses.Response {
+) (responses.Response, error) {
+	var resp responses.Response
+
 	client := &http.Client{Timeout: 10 * time.Minute}
 
 	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer([]byte(request.Body)))
 	if err != nil {
-		panic(err)
+		return resp, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -87,17 +90,17 @@ func makeApiCall(
 	timing := time.Since(before)
 
 	if err != nil {
-		panic(err)
+		return resp, err
 	}
 
 	defer httpResp.Body.Close()
 
 	body, err := ioutil.ReadAll(httpResp.Body)
 	if err != nil {
-		panic(err)
+		return resp, err
 	}
 
-	resp := responses.Response{
+	resp = responses.Response{
 		StatusCode: httpResp.StatusCode,
 		Headers: httpResp.Header,
 		Body: string(body),
@@ -106,7 +109,7 @@ func makeApiCall(
 		MeetsExpectedTiming: request.ExpectedTiming >= timing.Milliseconds(),
 	}
 
-	return resp
+	return resp, nil
 }
 
 func runSetWithData(
@@ -130,12 +133,12 @@ func runSetWithData(
 	for _, item := range set.Requests {
 		request := requestsMap[item]
 
-		requestClone, err := DeepClone(request)
+		newRequest, err := DeepClone[requests.Request](request)
 		if err != nil {
 			panic(err)
 		}
 
-		newRequest := requestClone.(requests.Request)
+		//newRequest := requestClone.(requests.Request)
 		newRequest.Method = GetVal(dataItem, set.Config, request.Method, findReplaceMap, resps)
 		newRequest.Url = GetVal(dataItem, set.Config, request.Url, findReplaceMap, resps)
 		for key, val := range request.Headers {
@@ -143,12 +146,19 @@ func runSetWithData(
 		}
 		newRequest.Body = GetVal(dataItem, set.Config, request.Body, findReplaceMap, resps)
 
-		resp := makeApiCall(newRequest)
+		resp, err := makeApiCall(newRequest)
+		if err != nil {
+			resp.Error = err
+		}
 
 		resp.OriginalRequest = request
 		resp.ComputedRequest = newRequest
 
 		resps = append(resps, resp)
+
+		if !resp.MeetsExpectedStatusCode {
+			break
+		}
 	}
 
 	if mx != nil {
@@ -317,17 +327,34 @@ func MergeMaps(map1, map2 map[string]string) map[string]string {
     return mergedMap
 }
 
-func DeepClone(src any) (any, error) {
+func DeepClone[T any](src T) (T, error) {
+	/*
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(src)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	dst := new(any)
-	err = gob.NewDecoder(&buf).Decode(dst)
+	gobData := buf.Bytes()
+
+	network2 := bytes.NewBuffer(gobData)
+	decoder := gob.NewDecoder(network2)
+
+	var dst string
+	err = decoder.Decode(&dst)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return *dst, nil
+
+	return ds, nil
+	*/
+
+	var dst T
+
+	jsonString, err := json.Marshal(src)
+	if err != nil {
+		return dst, err
+	}
+	err = json.Unmarshal([]byte(jsonString), &dst)
+	return dst, err
 }

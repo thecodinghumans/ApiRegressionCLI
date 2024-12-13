@@ -7,8 +7,9 @@ import (
 )
 
 type Response struct {
-	OriginalRequest		requests.Request			`json:OriginalRequest`
-	ComputedRequest		requests.Request			`json:ComputedRequest`
+	OriginalRequest		requests.Request	`json:OriginalRequest`
+	ComputedRequest		requests.Request	`json:ComputedRequest`
+	Error			error			`json:Error`
 	StatusCode		int			`json:StatusCode`
 	Headers			map[string][]string	`json:Headers`
 	Body			string			`json:Body`

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func FileExists(fileName string) bool {
@@ -46,6 +47,12 @@ func Load[T any](fileName string) T {
 }
 
 func Save[T any](fileName string, t T) {
+	dir := filepath.Dir(fileName)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		fmt.Printf("Failed to create directory: %v\n", err)
+		return
+	}
+
         file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
         if err != nil {
                 fmt.Println("Error opening file", err)
