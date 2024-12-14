@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-//	"encoding/gob"
 	"bytes"
 	"time"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"strconv"
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
@@ -153,6 +153,8 @@ func runSetWithData(
 
 		resp.OriginalRequest = request
 		resp.ComputedRequest = newRequest
+
+		fmt.Println(request.Name + " - Status Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
 
 		resps = append(resps, resp)
 
@@ -328,27 +330,6 @@ func MergeMaps(map1, map2 map[string]string) map[string]string {
 }
 
 func DeepClone[T any](src T) (T, error) {
-	/*
-	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(src)
-	if err != nil {
-		return "", err
-	}
-
-	gobData := buf.Bytes()
-
-	network2 := bytes.NewBuffer(gobData)
-	decoder := gob.NewDecoder(network2)
-
-	var dst string
-	err = decoder.Decode(&dst)
-	if err != nil {
-		return "", err
-	}
-
-	return ds, nil
-	*/
-
 	var dst T
 
 	jsonString, err := json.Marshal(src)
