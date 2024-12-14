@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/albertapi/AlbertApiCLI/sets"
+	"github.com/thecodinghumans/ApiRegressionCLI/sets"
 )
 
 // initCmd represents the init command

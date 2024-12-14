@@ -1,7 +1,7 @@
 package findreplaces
 
 import (
-	"github.com/albertapi/AlbertApiCLI/ioUtils"
+	"github.com/thecodinghumans/ApiRegressionCLI/ioUtils"
 )
 
 type FindReplace struct {

@@ -1,4 +1,4 @@
-module github.com/albertapi/AlbertApiCLI
+module github.com/thecodinghumans/ApiRegressionCLI
 
 go 1.23.1
 

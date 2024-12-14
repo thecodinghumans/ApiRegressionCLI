@@ -1,7 +1,7 @@
 package sets
 
 import (
-	"github.com/albertapi/AlbertApiCLI/ioUtils"
+	"github.com/thecodinghumans/ApiRegressionCLI/ioUtils"
 )
 
 type Set struct {

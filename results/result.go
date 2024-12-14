@@ -1,7 +1,7 @@
 package results
 
 import (
-	"github.com/albertapi/AlbertApiCLI/responses"
+	"github.com/thecodinghumans/ApiRegressionCLI/responses"
 )
 
 type Result struct {

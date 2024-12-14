@@ -4,7 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
 package main
 
-import "github.com/albertapi/AlbertApiCLI/cmd"
+import "github.com/thecodinghumans/ApiRegressionCLI/cmd"
 
 func main() {
 	cmd.Execute()

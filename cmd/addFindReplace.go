@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/albertapi/AlbertApiCLI/findreplaces"
-	"github.com/albertapi/AlbertApiCLI/sets"
+	"github.com/thecodinghumans/ApiRegressionCLI/findreplaces"
+	"github.com/thecodinghumans/ApiRegressionCLI/sets"
 )
 
 // addFindReplaceCmd represents the addFindReplace command

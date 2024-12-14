@@ -3,7 +3,7 @@ package responses
 import (
 	"time"
 
-	"github.com/albertapi/AlbertApiCLI/requests"
+	"github.com/thecodinghumans/ApiRegressionCLI/requests"
 )
 
 type Response struct {

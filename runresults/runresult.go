@@ -2,8 +2,8 @@ package runresults
 
 import (
 	"time"
-	"github.com/albertapi/AlbertApiCLI/results"
-	"github.com/albertapi/AlbertApiCLI/ioUtils"
+	"github.com/thecodinghumans/ApiRegressionCLI/results"
+	"github.com/thecodinghumans/ApiRegressionCLI/ioUtils"
 )
 
 type RunResult struct {

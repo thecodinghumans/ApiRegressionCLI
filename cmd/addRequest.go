@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/albertapi/AlbertApiCLI/sets"
-	"github.com/albertapi/AlbertApiCLI/requests"
+	"github.com/thecodinghumans/ApiRegressionCLI/sets"
+	"github.com/thecodinghumans/ApiRegressionCLI/requests"
 )
 
 var Method string

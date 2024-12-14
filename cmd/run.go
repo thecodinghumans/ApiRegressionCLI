@@ -13,12 +13,12 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
-	"github.com/albertapi/AlbertApiCLI/requests"
-	"github.com/albertapi/AlbertApiCLI/sets"
-	"github.com/albertapi/AlbertApiCLI/findreplaces"
-	"github.com/albertapi/AlbertApiCLI/responses"
-	"github.com/albertapi/AlbertApiCLI/runresults"
-	"github.com/albertapi/AlbertApiCLI/results"
+	"github.com/thecodinghumans/ApiRegressionCLI/requests"
+	"github.com/thecodinghumans/ApiRegressionCLI/sets"
+	"github.com/thecodinghumans/ApiRegressionCLI/findreplaces"
+	"github.com/thecodinghumans/ApiRegressionCLI/responses"
+	"github.com/thecodinghumans/ApiRegressionCLI/runresults"
+	"github.com/thecodinghumans/ApiRegressionCLI/results"
 )
 
 var Parallel bool
