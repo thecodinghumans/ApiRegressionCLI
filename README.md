@@ -15,7 +15,6 @@ Command: addRequest
 - Name: the name of the request
 - request.method: the http method for the request (GET, POST, etc)
 - request.url: the url for the request
-- request.body: the body of the request
 - request.expectedStatus: the expected status code for the responsee (int) ex 200, 401, etc
 - request.expectedTiming: the expected timeing for the response (int), ex 1000 where the expecation is that the call will take 1000ms or less
 

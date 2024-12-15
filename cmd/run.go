@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"strconv"
+	"bufio"
+	"os"
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
@@ -30,6 +32,11 @@ var runCmd = &cobra.Command{
 	Short: "run the set",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		if PromptEachCall && Parallel {
+			fmt.Println("YOu can't run in parallel and walk through")
+			return
+		}
+
 		set := sets.LoadSet(Path)
 
 		var requestsMap = make(map[string]requests.Request)
@@ -76,7 +83,12 @@ func makeApiCall(
 
 	client := &http.Client{Timeout: 10 * time.Minute}
 
-	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer([]byte(request.Body)))
+	reqBody, err := json.Marshal(request.Body)
+	if err != nil {
+		return resp, err
+	}
+
+	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return resp, err
 	}
@@ -144,7 +156,31 @@ func runSetWithData(
 		for key, val := range request.Headers {
 			newRequest.Headers[key] = GetVal(dataItem, set.Config, val, findReplaceMap, resps)
 		}
-		newRequest.Body = GetVal(dataItem, set.Config, request.Body, findReplaceMap, resps)
+
+		reqBody, err := json.Marshal(request.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		newRequest.Body = GetVal(dataItem, set.Config, string(reqBody), findReplaceMap, resps)
+
+		if PromptEachCall {
+			jsonData, err := json.MarshalIndent(newRequest, "", "  ")
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(jsonData))
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("Continue?")
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				panic(err)
+			}
+			line = line[:len(line) -1]
+			if strings.ToUpper(line) != "TRUE" {
+				break
+			}
+		}
 
 		resp, err := makeApiCall(newRequest)
 		if err != nil {
