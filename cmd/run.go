@@ -116,7 +116,11 @@ func makeApiCall(
 	bodyMatches := true
 
 	if request.ExpectedBodyFormat != "" {
-		schemaLoader := gojsonschema.NewStringLoader(request.ExpectedBodyFormat)
+		bodyFormat, err := json.Marshal(request.ExpectedBodyFormat)
+		if err != nil {
+			return resp, err
+		}
+		schemaLoader := gojsonschema.NewStringLoader(string(bodyFormat))
 		documentLoader := gojsonschema.NewStringLoader(string(body))
 		result, err := gojsonschema.Validate(schemaLoader, documentLoader)
 		bodyMatches = result.Valid() && err == nil

@@ -13,7 +13,7 @@ type Request struct{
 	Body			any			`json:Body`
 	ExpectedStatus		int			`json:ExpectedStatus`
 	ExpectedTiming		int64			`json:ExpectedTiming`
-	ExpectedBodyFormat	string			`json:ExpectedBodyFormat`
+	ExpectedBodyFormat	any			`json:ExpectedBodyFormat`
 }
 
 func getFileName(path string, fileName string) string {
