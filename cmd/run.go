@@ -190,7 +190,9 @@ func runSetWithData(
 		resp.OriginalRequest = request
 		resp.ComputedRequest = newRequest
 
-		fmt.Println("\t\t" + request.Name + " - Status Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
+		fmt.Println("\t\t" + request.Name)
+		fmt.Println("\t\t\tStatus Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
+		fmt.Println("\t\t\tTiming Matches: " + strconv.FormatBool(resp.MeetsExpectedTiming))
 
 		resps = append(resps, resp)
 
