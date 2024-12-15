@@ -138,7 +138,7 @@ func runSetWithData(
 		defer wg.Done()
 	}
 
-	fmt.Println("Running with data item: " + dataItemKey)
+	fmt.Println("\tRunning with data item: " + dataItemKey)
 
 	resps := make([]responses.Response, 0)
 
@@ -190,7 +190,7 @@ func runSetWithData(
 		resp.OriginalRequest = request
 		resp.ComputedRequest = newRequest
 
-		fmt.Println(request.Name + " - Status Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
+		fmt.Println("\t\t" + request.Name + " - Status Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
 
 		resps = append(resps, resp)
 
@@ -214,7 +214,7 @@ func runSetWithData(
 		mx.Unlock()
 	}
 
-	fmt.Println("Finished with data item: " + dataItemKey)
+	fmt.Println("\tFinished with data item: " + dataItemKey)
 }
 
 func runSet(
