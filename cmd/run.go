@@ -15,6 +15,7 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
+	"github.com/xeipuuv/gojsonschema"
 	"github.com/thecodinghumans/ApiRegressionCLI/requests"
 	"github.com/thecodinghumans/ApiRegressionCLI/sets"
 	"github.com/thecodinghumans/ApiRegressionCLI/findreplaces"
@@ -112,6 +113,15 @@ func makeApiCall(
 		return resp, err
 	}
 
+	bodyMatches := true
+
+	if request.ExpectedBodyFormat != "" {
+		schemaLoader := gojsonschema.NewStringLoader(request.ExpectedBodyFormat)
+		documentLoader := gojsonschema.NewStringLoader(string(body))
+		result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+		bodyMatches = result.Valid() && err == nil
+	}
+
 	resp = responses.Response{
 		StatusCode: httpResp.StatusCode,
 		Headers: httpResp.Header,
@@ -119,6 +129,7 @@ func makeApiCall(
 		Timing: timing.Milliseconds(),
 		MeetsExpectedStatusCode: request.ExpectedStatus == httpResp.StatusCode,
 		MeetsExpectedTiming: request.ExpectedTiming >= timing.Milliseconds(),
+		MeetsExpectedBodyFormat: bodyMatches,
 	}
 
 	return resp, nil
@@ -150,7 +161,6 @@ func runSetWithData(
 			panic(err)
 		}
 
-		//newRequest := requestClone.(requests.Request)
 		newRequest.Method = GetVal(dataItem, set.Config, request.Method, findReplaceMap, resps)
 		newRequest.Url = GetVal(dataItem, set.Config, request.Url, findReplaceMap, resps)
 		for key, val := range request.Headers {
@@ -193,6 +203,7 @@ func runSetWithData(
 		fmt.Println("\t\t" + request.Name)
 		fmt.Println("\t\t\tStatus Matches: " + strconv.FormatBool(resp.MeetsExpectedStatusCode))
 		fmt.Println("\t\t\tTiming Matches: " + strconv.FormatBool(resp.MeetsExpectedTiming))
+		fmt.Println("\t\t\tBody Matches: " + strconv.FormatBool(resp.MeetsExpectedBodyFormat))
 
 		resps = append(resps, resp)
 
