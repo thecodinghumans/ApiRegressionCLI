@@ -26,6 +26,7 @@ import (
 
 var Parallel bool
 var PromptEachCall bool
+var RunEverySeconds int
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
@@ -33,24 +34,33 @@ var runCmd = &cobra.Command{
 	Short: "run the set",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if PromptEachCall && Parallel {
-			fmt.Println("YOu can't run in parallel and walk through")
-			return
+		for true {
+			if PromptEachCall && Parallel {
+				fmt.Println("YOu can't run in parallel and walk through")
+				return
+			}
+
+			set := sets.LoadSet(Path)
+
+			var requestsMap = make(map[string]requests.Request)
+			for _, requestFileName := range set.Requests {
+				requestsMap[requestFileName] = requests.LoadRequest(Path, requestFileName)
+			}
+
+			var findReplaceMap = make(map[string]findreplaces.FindReplace)
+			for _, findReplaceFileName := range set.FindReplaces {
+				findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
+			}
+
+			runSet(Name, set, requestsMap, findReplaceMap)
+
+			if RunEverySeconds > 0 {
+				fmt.Println("Running again in " + strconv.Itoa(RunEverySeconds) + " seconds")
+				time.Sleep(time.Duration(RunEverySeconds) * time.Second)
+			} else {
+				break
+			}
 		}
-
-		set := sets.LoadSet(Path)
-
-		var requestsMap = make(map[string]requests.Request)
-		for _, requestFileName := range set.Requests {
-			requestsMap[requestFileName] = requests.LoadRequest(Path, requestFileName)
-		}
-
-		var findReplaceMap = make(map[string]findreplaces.FindReplace)
-		for _, findReplaceFileName := range set.FindReplaces {
-			findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
-		}
-
-		runSet(Name, set, requestsMap, findReplaceMap)
 	},
 }
 
@@ -75,6 +85,8 @@ func init() {
 	runCmd.Flags().BoolVar(&PromptEachCall, "PromptEachCall", false, "Prompt the user whether to continue with each run")
 
 	runCmd.Flags().StringVarP(&Name, "Name", "n", "", "A name for this particular run")
+
+	runCmd.Flags().IntVar(&RunEverySeconds, "RunEverySeconds", -1, "Loop and continue running")
 }
 
 func makeApiCall(
