@@ -27,3 +27,4 @@ Command: run
 - Name: a name for this particular run
 - Parallel: whether to run each data item in parallel (default is false)
 - PromptEachCall: whether to walk through and confirm each call before it is made. This is useful when first running the set to confirm if the requests are valid
+- RunEverySeconds: define an int higher than 0 and it will run the set every X seconds
