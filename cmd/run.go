@@ -210,7 +210,7 @@ func runSetWithData(
 
 		resp, err := makeApiCall(newRequest)
 		if err != nil {
-			resp.Error = err
+			resp.Error = err.Error()
 		}
 
 		resp.OriginalRequest = request
@@ -233,6 +233,7 @@ func runSetWithData(
 	}
 
 	res := results.Result{
+		DataItemKey: dataItemKey,
 		DataItem: dataItem,
 		Responses: resps,
 	}
