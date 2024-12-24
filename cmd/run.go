@@ -34,7 +34,18 @@ var runCmd = &cobra.Command{
 	Short: "run the set",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		for true {
+		runEvery := RunEverySeconds
+		if runEvery <= 0 {
+			runEvery = 1000
+		}
+
+		ticker := time.NewTicker(time.Duration(runEvery) * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if RunEverySeconds <= 0 {
+				ticker.Stop()
+			}
+
 			if PromptEachCall && Parallel {
 				fmt.Println("YOu can't run in parallel and walk through")
 				return
@@ -54,10 +65,7 @@ var runCmd = &cobra.Command{
 
 			runSet(Name, set, requestsMap, findReplaceMap)
 
-			if RunEverySeconds > 0 {
-				fmt.Println("Running again in " + strconv.Itoa(RunEverySeconds) + " seconds")
-				time.Sleep(time.Duration(RunEverySeconds) * time.Second)
-			} else {
+			if RunEverySeconds <= 0 {
 				break
 			}
 		}
