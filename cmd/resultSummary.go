@@ -126,8 +126,8 @@ func init() {
 	// is called directly, e.g.:
 	// resultSummaryCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	resultSummaryCmd.Flags().StringVar(&Path, "path", "", "Path to the set")
-	resultSummaryCmd.Flags().StringVar(&Since, "since", "", "Results since when?")
+	resultSummaryCmd.Flags().StringVar(&Path, "Path", "", "Path to the set")
+	resultSummaryCmd.Flags().StringVar(&Since, "Since", "", "Results since when?")
 }
 
 type requestResults struct {
