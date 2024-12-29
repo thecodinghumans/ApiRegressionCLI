@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"time"
 	"net/http"
+	"net/url"
 	"io/ioutil"
 	"encoding/json"
 	"strconv"
@@ -36,7 +37,8 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		runEvery := RunEverySeconds
 		if runEvery <= 0 {
-			runEvery = 1000
+			runEvery = 10
+			fmt.Println("Running in about 10 seconds")
 		}
 
 		ticker := time.NewTicker(time.Duration(runEvery) * time.Second)
@@ -104,17 +106,39 @@ func makeApiCall(
 
 	client := &http.Client{Timeout: 10 * time.Minute}
 
-	reqBody, err := json.Marshal(request.Body)
+	reqBody := request.Body.(string)
+
+	var bodyBytes = []byte(reqBody)
+
+	contentType, contentTypesSet := request.Headers["Content-Type"]
+	if contentTypesSet {
+		if strings.ToLower(contentType) == "application/x-www-form-urlencoded" || strings.ToLower(contentType) == "multipart/form-data" {
+			data := url.Values{}
+			var bodyAsMap map[string]string
+			err := json.Unmarshal(bodyBytes, &bodyAsMap)
+			if err != nil {
+				fmt.Println(err)
+				return resp, err
+			}
+			for key, val := range bodyAsMap {
+				data.Set(key, val)
+			}
+			bodyBytes = []byte(data.Encode())
+		}
+	}
+
+	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return resp, err
 	}
 
-	req, err := http.NewRequest(strings.ToUpper(request.Method), request.Url, bytes.NewBuffer([]byte(reqBody)))
-	if err != nil {
-		return resp, err
+	for hKey, hVal := range  request.Headers {
+		req.Header.Set(hKey, hVal)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	if !contentTypesSet {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	before := time.Now()
 
