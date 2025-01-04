@@ -36,40 +36,19 @@ var runCmd = &cobra.Command{
 	Short: "run the set",
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		runEvery := RunEverySeconds
-		if runEvery <= 0 {
-			runEvery = 10
-			fmt.Println("Running in about 10 seconds")
+		if PromptEachCall && Parallel {
+			fmt.Println("You can't run in parallel and walk through")
+			return
 		}
 
-		ticker := time.NewTicker(time.Duration(runEvery) * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			if RunEverySeconds <= 0 {
-				ticker.Stop()
-			}
-
-			if PromptEachCall && Parallel {
-				fmt.Println("YOu can't run in parallel and walk through")
-				return
-			}
-
-			set := sets.LoadSet(Path)
-
-			var requestsMap = make(map[string]requests.Request)
-			for _, requestFileName := range set.Requests {
-				requestsMap[requestFileName] = requests.LoadRequest(Path, requestFileName)
-			}
-
-			var findReplaceMap = make(map[string]findreplaces.FindReplace)
-			for _, findReplaceFileName := range set.FindReplaces {
-				findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
-			}
-
-			runSet(Name, set, requestsMap, findReplaceMap)
-
-			if RunEverySeconds <= 0 {
-				break
+		if RunEverySeconds <= 0 {
+			start()
+		} else {
+			fmt.Println("Running in " + strconv.Itoa(RunEverySeconds) + " seconds")
+			ticker := time.NewTicker(time.Duration(RunEverySeconds) * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				start()
 			}
 		}
 	},
@@ -98,6 +77,22 @@ func init() {
 	runCmd.Flags().StringVarP(&Name, "Name", "n", "", "A name for this particular run")
 
 	runCmd.Flags().IntVar(&RunEverySeconds, "RunEverySeconds", -1, "Loop and continue running")
+}
+
+func start() {
+	set := sets.LoadSet(Path)
+
+	var requestsMap = make(map[string]requests.Request)
+        for _, requestFileName := range set.Requests {
+		requestsMap[requestFileName] = requests.LoadRequest(Path, requestFileName)
+	}
+
+	var findReplaceMap = make(map[string]findreplaces.FindReplace)
+        for _, findReplaceFileName := range set.FindReplaces {
+		findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
+	}
+
+        runSet(Name, set, requestsMap, findReplaceMap)
 }
 
 func makeApiCall(
