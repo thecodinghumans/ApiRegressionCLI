@@ -24,7 +24,7 @@ type RunResultInfos struct {
 }
 
 func GetFileName(date time.Time) string {
-	return date.Format("2006-01-02 15:04:05.000") + ".json"
+	return date.Format("2006-01-02 15.04.05.000") + ".json"
 }
 
 func getFullFileName(path string, fileName string) string {
