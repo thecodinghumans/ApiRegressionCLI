@@ -23,6 +23,7 @@ import (
 	"github.com/thecodinghumans/ApiRegressionCLI/responses"
 	"github.com/thecodinghumans/ApiRegressionCLI/runresults"
 	"github.com/thecodinghumans/ApiRegressionCLI/results"
+	"github.com/thecodinghumans/ApiRegressionCLI/mapUtils"
 )
 
 var Parallel bool
@@ -110,7 +111,7 @@ func makeApiCall(
 
 	var bodyBytes = []byte(reqBody)
 
-	contentType, contentTypesSet := request.Headers["Content-Type"]
+	contentType, contentTypesSet := mapUtils.GetCaseInsensitiveKey(request.Headers, "Content-Type")
 	if contentTypesSet {
 		if strings.ToLower(contentType) == "application/x-www-form-urlencoded" || strings.ToLower(contentType) == "multipart/form-data" {
 			data := url.Values{}
