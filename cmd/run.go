@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"bufio"
 	"os"
+	"mime/multipart"
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
@@ -108,7 +109,7 @@ func makeApiCall(
 
 	contentType, contentTypesSet := mapUtils.GetCaseInsensitiveKey(request.Headers, "Content-Type")
 	if contentTypesSet {
-		if strings.ToLower(contentType) == "application/x-www-form-urlencoded" || strings.ToLower(contentType) == "multipart/form-data" {
+		if strings.ToLower(contentType) == "application/x-www-form-urlencoded" {
 			data := url.Values{}
 			var bodyAsMap map[string]string
 			err := json.Unmarshal(bodyBytes, &bodyAsMap)
@@ -120,6 +121,29 @@ func makeApiCall(
 				data.Set(key, val)
 			}
 			bodyBytes = []byte(data.Encode())
+		}
+		if strings.ToLower(contentType) == "multipart/form-data" {
+			var bodyAsMap map[string]string
+			err := json.Unmarshal(bodyBytes, &bodyAsMap)
+			if err != nil {
+				fmt.Println(err)
+				return resp, err
+			}
+			var bodyBytesBuffer bytes.Buffer
+			writer := multipart.NewWriter(&bodyBytesBuffer)
+			for key, val := range bodyAsMap {
+				err := writer.WriteField(key, val)
+				if err != nil {
+					fmt.Println(err)
+					return resp, err
+				}
+			}
+			err = writer.Close()
+			if err != nil {
+				fmt.Println(err)
+				return resp, err
+			}
+			bodyBytes = bodyBytesBuffer.Bytes()
 		}
 	}
 
