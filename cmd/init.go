@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/thecodinghumans/ApiRegressionCLI/sets"
+	"github.com/thecodinghumans/ApiRegressionCLI/envs"
 )
 
 // initCmd represents the init command
@@ -26,6 +27,11 @@ var initCmd = &cobra.Command{
 		}
 
 		sets.SaveSet(Path, set)
+
+		env := envs.Env{
+			Config: make(map[string]string),
+		}
+		envs.SaveEnv(Path, env)
 
 		os.MkdirAll(Path + "/FindReplaces", 0755)
 		os.MkdirAll(Path + "/Requests", 0755)

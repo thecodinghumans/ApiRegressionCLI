@@ -25,6 +25,7 @@ import (
 	"github.com/thecodinghumans/ApiRegressionCLI/runresults"
 	"github.com/thecodinghumans/ApiRegressionCLI/results"
 	"github.com/thecodinghumans/ApiRegressionCLI/mapUtils"
+	"github.com/thecodinghumans/ApiRegressionCLI/envs"
 )
 
 var Parallel bool
@@ -83,6 +84,8 @@ func init() {
 func start() {
 	set := sets.LoadSet(Path)
 
+	env := envs.LoadEnv(Path)
+
 	var requestsMap = make(map[string]requests.Request)
         for _, requestFileName := range set.Requests {
 		requestsMap[requestFileName] = requests.LoadRequest(Path, requestFileName)
@@ -93,7 +96,7 @@ func start() {
 		findReplaceMap[findReplaceFileName] = findreplaces.LoadFindReplace(Path, findReplaceFileName)
 	}
 
-        runSet(Name, set, requestsMap, findReplaceMap)
+        runSet(Name, set, requestsMap, findReplaceMap, env)
 }
 
 func makeApiCall(
@@ -212,6 +215,7 @@ func runSetWithData(
 	mx *sync.Mutex,
 	runResult *runresults.RunResult,
 	dataItemKey string,
+	env envs.Env,
 ) {
 	if wg != nil {
 		defer wg.Done()
@@ -229,10 +233,10 @@ func runSetWithData(
 			panic(err)
 		}
 
-		newRequest.Method = GetVal(dataItem, set.Config, request.Method, findReplaceMap, resps)
-		newRequest.Url = GetVal(dataItem, set.Config, request.Url, findReplaceMap, resps)
+		newRequest.Method = GetVal(dataItem, set.Config, request.Method, findReplaceMap, resps, env)
+		newRequest.Url = GetVal(dataItem, set.Config, request.Url, findReplaceMap, resps, env)
 		for key, val := range request.Headers {
-			newRequest.Headers[key] = GetVal(dataItem, set.Config, val, findReplaceMap, resps)
+			newRequest.Headers[key] = GetVal(dataItem, set.Config, val, findReplaceMap, resps, env)
 		}
 
 		reqBody, err := json.Marshal(request.Body)
@@ -240,7 +244,7 @@ func runSetWithData(
 			panic(err)
 		}
 
-		newRequest.Body = GetVal(dataItem, set.Config, string(reqBody), findReplaceMap, resps)
+		newRequest.Body = GetVal(dataItem, set.Config, string(reqBody), findReplaceMap, resps, env)
 
 		if PromptEachCall {
 			jsonData, err := json.MarshalIndent(newRequest, "", "  ")
@@ -304,6 +308,7 @@ func runSet(
 	set sets.Set, 
 	requestsMap map[string]requests.Request, 
 	findReplaceMap map[string]findreplaces.FindReplace,
+	env envs.Env,
 ) {
 	fmt.Println("Running Set: " + set.Name)
 
@@ -322,9 +327,9 @@ func runSet(
 	for key, dataItem := range set.Data {
 		if Parallel {
 			wg.Add(1)
-			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult, key)
+			go runSetWithData(set, requestsMap, findReplaceMap, dataItem, &wg, &mx, &runResult, key, env)
 		}else{
-			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil, nil, &runResult, key)
+			runSetWithData(set, requestsMap, findReplaceMap, dataItem, nil, nil, &runResult, key, env)
 		}
 	}
 
@@ -359,9 +364,10 @@ func GetVal(
 	val string,
 	findReplaceMap map[string]findreplaces.FindReplace,
 	resps []responses.Response,
+	env envs.Env,
 ) string {
 	//Build the single  map to use
-	mergedMap := MergeMaps(config, dataItem)
+	mergedMap := MergeMaps(env.Config, MergeMaps(config, dataItem))
 
 	//Ovewrite the map with any findreplace strings
 	for _, fr := range findReplaceMap {
