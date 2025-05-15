@@ -17,7 +17,7 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/spf13/cobra"
-	"github.com/xeipuuv/gojsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/thecodinghumans/ApiRegressionCLI/requests"
 	"github.com/thecodinghumans/ApiRegressionCLI/sets"
 	"github.com/thecodinghumans/ApiRegressionCLI/findreplaces"
@@ -183,14 +183,29 @@ func makeApiCall(
 	bodyMatches := true
 
 	if request.ExpectedBodyFormat != "" {
-		bodyFormat, err := json.Marshal(request.ExpectedBodyFormat)
+		expectedBody, err := json.Marshal(request.ExpectedBodyFormat)
 		if err != nil {
 			return resp, err
 		}
-		schemaLoader := gojsonschema.NewStringLoader(string(bodyFormat))
-		documentLoader := gojsonschema.NewStringLoader(string(body))
-		result, err := gojsonschema.Validate(schemaLoader, documentLoader)
-		bodyMatches = result.Valid() && err == nil
+
+		/*
+		schema, err := jsonschema.UnmarshalJSON(strings.NewReader(string(expectedBody)))
+		if err != nil {
+			return resp, err
+		}
+		*/
+
+		c := jsonschema.NewCompiler()
+
+		c.AddResource("main.json", []byte(expectedBody))
+
+		sch, err := c.Compile("main.json")
+		if err != nil {
+			return resp, err
+		}
+
+		err = sch.Validate(string(body))
+		bodyMatches = err != nil
 	}
 
 	resp = responses.Response{
